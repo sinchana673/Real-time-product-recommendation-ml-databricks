@@ -1,0 +1,698 @@
+{
+  "datasets": [
+    {
+      "name": "99ff6c3b",
+      "displayName": "user_recommendation_snapshots_live",
+      "queryLines": [
+        "SELECT\r\n",
+        "  recommendation_type,\r\n",
+        "  COUNT(*) AS user_count\r\n",
+        "FROM kusha_solutions.product_recomendation.user_recommendation_snapshots_live\r\n",
+        "WHERE run_ts = (\r\n",
+        "  SELECT MAX(run_ts)\r\n",
+        "  FROM kusha_solutions.product_recomendation.user_recommendation_snapshots_live\r\n",
+        ")\r\n",
+        "GROUP BY recommendation_type\r\n",
+        "ORDER BY user_count DESC;\r\n"
+      ],
+      "catalog": "kusha_solutions",
+      "schema": "product_recomendation"
+    },
+    {
+      "name": "e0232d55",
+      "displayName": "Daily Summary of Recommended Users Count",
+      "queryLines": [
+        "SELECT\r\n",
+        "  DATE(run_ts) AS run_date,\r\n",
+        "  COUNT(*) AS total_users_recommended\r\n",
+        "FROM kusha_solutions.product_recomendation.user_recommendation_snapshots_live\r\n",
+        "GROUP BY DATE(run_ts)\r\n",
+        "ORDER BY run_date;\r\n"
+      ],
+      "catalog": "kusha_solutions",
+      "schema": "product_recomendation"
+    },
+    {
+      "name": "32f7b970",
+      "displayName": "Top Ten Most Recommended Products Snapshot",
+      "queryLines": [
+        "SELECT\r\n",
+        "  rec.product_name AS product,\r\n",
+        "  COUNT(*) AS recommendation_count\r\n",
+        "FROM kusha_solutions.product_recomendation.user_recommendation_snapshots_live\r\n",
+        "LATERAL VIEW explode(recommendations) r AS rec\r\n",
+        "WHERE run_ts = (\r\n",
+        "  SELECT MAX(run_ts)\r\n",
+        "  FROM kusha_solutions.product_recomendation.user_recommendation_snapshots_live\r\n",
+        ")\r\n",
+        "GROUP BY rec.product_name\r\n",
+        "ORDER BY recommendation_count DESC\r\n",
+        "LIMIT 10;\r\n"
+      ],
+      "catalog": "kusha_solutions",
+      "schema": "product_recomendation"
+    },
+    {
+      "name": "03f5ff5f",
+      "displayName": "User Recommendation Reasons Summary Dataset",
+      "queryLines": [
+        "SELECT\r\n",
+        "  rec.reason AS reason,\r\n",
+        "  COUNT(*) AS count\r\n",
+        "FROM kusha_solutions.product_recomendation.user_recommendation_snapshots_live\r\n",
+        "LATERAL VIEW explode(recommendations) r AS rec\r\n",
+        "WHERE run_ts = (\r\n",
+        "  SELECT MAX(run_ts)\r\n",
+        "  FROM kusha_solutions.product_recomendation.user_recommendation_snapshots_live\r\n",
+        ")\r\n",
+        "GROUP BY rec.reason\r\n",
+        "ORDER BY count DESC;\r\n"
+      ]
+    },
+    {
+      "name": "24cb1cca",
+      "displayName": "Customer Product Recommendation Scores and Reasons",
+      "queryLines": [
+        "SELECT\r\n",
+        "  CustomerID,\r\n",
+        "  rec.product_name,\r\n",
+        "  rec.reason,\r\n",
+        "  run_ts\r\n",
+        "FROM user_recommendation_snapshots_live\r\n",
+        "LATERAL VIEW explode(recommendations) r AS rec\r\n",
+        "WHERE run_ts = (\r\n",
+        "  SELECT MAX(run_ts)\r\n",
+        "  FROM user_recommendation_snapshots_live t2\r\n",
+        "  WHERE t2.CustomerID = user_recommendation_snapshots_live.CustomerID\r\n",
+        ")\r\n",
+        "ORDER BY run_ts DESC;\r\n"
+      ],
+      "catalog": "kusha_solutions",
+      "schema": "product_recomendation"
+    }
+  ],
+  "pages": [
+    {
+      "name": "d2d80b81",
+      "displayName": "Recommendation_Dashboards",
+      "layout": [
+        {
+          "widget": {
+            "name": "user-coverage-by-recommendation-type",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "99ff6c3b",
+                  "fields": [
+                    {
+                      "name": "recommendation_type",
+                      "expression": "`recommendation_type`"
+                    },
+                    {
+                      "name": "sum(user_count)",
+                      "expression": "SUM(`user_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "recommendation_type",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(user_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "User Coverage by Recommendation Type"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 29,
+            "width": 5,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "recommendations-over-time-pipeline-health",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "e0232d55",
+                  "fields": [
+                    {
+                      "name": "monthly(run_date)",
+                      "expression": "DATE_TRUNC(\"MONTH\", `run_date`)"
+                    },
+                    {
+                      "name": "sum(total_users_recommended)",
+                      "expression": "SUM(`total_users_recommended`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`run_date` IN (`run_date`) OR TRUE"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "monthly(run_date)",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(total_users_recommended)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Recommendations Over Time (Pipeline Health)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 5,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "top-10-recommended-products",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "32f7b970",
+                  "fields": [
+                    {
+                      "name": "product",
+                      "expression": "`product`"
+                    },
+                    {
+                      "name": "sum(recommendation_count)",
+                      "expression": "SUM(`recommendation_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "combo",
+              "encodings": {
+                "x": {
+                  "fieldName": "product",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "primary": {
+                    "fields": [
+                      {
+                        "fieldName": "sum(recommendation_count)"
+                      }
+                    ]
+                  },
+                  "secondary": {
+                    "fields": []
+                  },
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 Recommended Products"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 5,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "recommendation-reason-distribution",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "03f5ff5f",
+                  "fields": [
+                    {
+                      "name": "reason",
+                      "expression": "`reason`"
+                    },
+                    {
+                      "name": "sum(count)",
+                      "expression": "SUM(`count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "reason",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Recommendation Reason Distribution"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 6,
+            "height": 9
+          }
+        },
+        {
+          "widget": {
+            "name": "f31b4215",
+            "queries": [
+              {
+                "name": "dashboards/01f0ec5e56d714ba8ca135a0f93016b6/datasets/01f0ec720b0b16d5b2bd30313d2140ef_run_ts",
+                "query": {
+                  "datasetName": "24cb1cca",
+                  "fields": [
+                    {
+                      "name": "run_ts",
+                      "expression": "`run_ts`"
+                    },
+                    {
+                      "name": "run_ts_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "run_ts",
+                    "queryName": "dashboards/01f0ec5e56d714ba8ca135a0f93016b6/datasets/01f0ec720b0b16d5b2bd30313d2140ef_run_ts"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "recommendation_type",
+            "queries": [
+              {
+                "name": "dashboards/01f0ec5e56d714ba8ca135a0f93016b6/datasets/01f0ec720b0b16d5b2bd30313d2140ef_reason",
+                "query": {
+                  "datasetName": "24cb1cca",
+                  "fields": [
+                    {
+                      "name": "reason",
+                      "expression": "`reason`"
+                    },
+                    {
+                      "name": "reason_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "reason",
+                    "queryName": "dashboards/01f0ec5e56d714ba8ca135a0f93016b6/datasets/01f0ec720b0b16d5b2bd30313d2140ef_reason"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "recommendation_type"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "51504da6",
+            "queries": [
+              {
+                "name": "dashboards/01f0ec5e56d714ba8ca135a0f93016b6/datasets/01f0ec720b0b16d5b2bd30313d2140ef_CustomerID",
+                "query": {
+                  "datasetName": "24cb1cca",
+                  "fields": [
+                    {
+                      "name": "CustomerID",
+                      "expression": "`CustomerID`"
+                    },
+                    {
+                      "name": "CustomerID_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "CustomerID",
+                    "queryName": "dashboards/01f0ec5e56d714ba8ca135a0f93016b6/datasets/01f0ec720b0b16d5b2bd30313d2140ef_CustomerID"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "recommendations-table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "24cb1cca",
+                  "fields": [
+                    {
+                      "name": "CustomerID",
+                      "expression": "`CustomerID`"
+                    },
+                    {
+                      "name": "product_name",
+                      "expression": "`product_name`"
+                    },
+                    {
+                      "name": "reason",
+                      "expression": "`reason`"
+                    },
+                    {
+                      "name": "run_ts",
+                      "expression": "`run_ts`"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "IN_RANGE(`run_ts`, NULL, NULL)"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "CustomerID",
+                    "numberFormat": "0",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "integer",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 100000,
+                    "title": "CustomerID",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false
+                  },
+                  {
+                    "fieldName": "product_name",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 100001,
+                    "title": "product_name",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false
+                  },
+                  {
+                    "fieldName": "reason",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 100003,
+                    "title": "reason",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false
+                  },
+                  {
+                    "fieldName": "run_ts",
+                    "dateTimeFormat": "DD/MM/YYYY HH:mm:ss.SSS",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "datetime",
+                    "displayAs": "datetime",
+                    "visible": true,
+                    "order": 100004,
+                    "title": "run_ts",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false
+                  }
+                ]
+              },
+              "invisibleColumns": [],
+              "allowHTMLByDefault": false,
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "condensed": true,
+              "withRowNumber": false,
+              "frame": {
+                "showTitle": true,
+                "title": "Recommendarions Table"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "2437c798",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "4b4f40f2",
+            "queries": [
+              {
+                "name": "dashboards/01f0ec5e56d714ba8ca135a0f93016b6/datasets/01f0ec605ed7165cbe175e8e669775d5_run_date",
+                "query": {
+                  "datasetName": "e0232d55",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    },
+                    {
+                      "name": "run_date_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "run_date",
+                    "queryName": "dashboards/01f0ec5e56d714ba8ca135a0f93016b6/datasets/01f0ec605ed7165cbe175e8e669775d5_run_date"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
