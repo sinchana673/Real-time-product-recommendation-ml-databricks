@@ -25,19 +25,19 @@ Feature Engineering
 Model Training (XGBoost Ranker)
 ↓
 Inference & Recommendation Snapshots
-
-## 📁 Repository Structure
+↓
+Databricks SQL Dashboards
 Real-time-product-recommendation-ml-databricks/
 │
 ├── Product_Recommendation_Online_ML/
-│ ├── 1_Data_Generation
-│ ├── 3_EDA
-│ ├── 4_Candidate_Generation
-│ ├── 5_Feature_Eng
-│ ├── 6_Label_generation
-│ ├── 7_Data_splitting
-│ ├── 8_Model_Training
-│ └── 9_inference_recommendation
+│ ├── 1_Data_Generation.py
+│ ├── 3_EDA.py
+│ ├── 4_Candidate_Generation.py
+│ ├── 5_Feature_Eng.py
+│ ├── 6_Label_generation.py
+│ ├── 7_Data_splitting.py
+│ ├── 8_Model_Training.py
+│ └── 9_inference_recommendation.py
 │
 ├── product_recommendation_dlt_Medallion/
 │ └── transformations/
@@ -45,10 +45,14 @@ Real-time-product-recommendation-ml-databricks/
 │ ├── silver.sql
 │ └── gold.sql
 │
+├── dashboards/
+│ └── product_recommendation_dashboard.json
+│
 └── README.md
 
 
 ---
+
 
 ## 🧱 Data Pipeline – Medallion Architecture (DLT)
 
@@ -101,6 +105,27 @@ Real-time-product-recommendation-ml-databricks/
 
 ---
 
+## 📈 Dashboards & Monitoring
+
+This project includes **Databricks SQL Dashboards** for monitoring and analysis.
+
+### Dashboard Capabilities
+- Recommendation coverage per user
+- Top recommended products
+- Model performance metrics
+- User interaction trends
+- Incremental data freshness
+
+### Version Control
+- Dashboards are **exported as JSON**
+- Stored in the `dashboards/` folder
+- Version-controlled using **Git**
+- Can be re-imported into Databricks and refreshed using live data
+
+> Dashboards remain fully interactive after import and always query the latest Bronze/Silver/Gold tables.
+
+---
+
 ## 🛠️ Technology Stack
 
 - Databricks Lakehouse
@@ -108,6 +133,7 @@ Real-time-product-recommendation-ml-databricks/
 - Delta Lake & Delta Live Tables (DLT)
 - MLflow (Experiments & Model Registry)
 - XGBoost
+- Databricks SQL Dashboards
 - GitHub
 
 ---
@@ -127,6 +153,7 @@ Real-time-product-recommendation-ml-databricks/
    - Data splitting
    - Model training
 5. Run inference script to generate recommendations
+6. Import dashboard JSON and refresh to visualize results
 
 ---
 
@@ -136,6 +163,7 @@ Real-time-product-recommendation-ml-databricks/
 - Incremental and scalable DLT pipelines
 - Leakage-free model training
 - Cold-start user handling
+- Dashboard-driven monitoring
 - Production-ready Databricks implementation
 
 ---
@@ -144,6 +172,7 @@ Real-time-product-recommendation-ml-databricks/
 
 - Real-time model serving
 - Online feature store integration
+- Automated dashboard refresh
 - A/B testing for recommendation quality
 - Deep learning–based recommenders
 
